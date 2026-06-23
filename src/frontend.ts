@@ -238,7 +238,7 @@ export function renderHTML(): string {
   <div class="header-inner">
     <h1>💩 ShittyAds</h1>
     <span class="subtitle">Drag &amp; Drop oder Strg+V</span>
-    <button id="upload-btn">⬆ Hochladen</button>
+    <button id="upload-btn">Hochladen</button>
     <button id="secret-toggle">⚙</button>
     <div id="secret-wrap">
       <input type="password" id="secret-input" placeholder="Upload-Secret…">
@@ -394,7 +394,7 @@ async function upload(files) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } finally {
     uploadBtn.classList.remove('uploading');
-    uploadBtn.textContent = '⬆ Hochladen';
+    uploadBtn.textContent = 'Hochladen';
   }
 }
 
