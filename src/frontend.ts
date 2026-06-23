@@ -283,7 +283,7 @@ const fileInput = document.getElementById('file-input');
 function applySecret(val) {
   if (val) {
     localStorage.setItem(SECRET_KEY, val);
-    uploadBtn.style.display = '';
+    uploadBtn.style.display = 'block';
   } else {
     localStorage.removeItem(SECRET_KEY);
     uploadBtn.style.display = 'none';
