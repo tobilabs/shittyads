@@ -277,7 +277,7 @@ function appendAds(items) {
     const article = document.createElement('article');
     article.className = 'ad-item';
     const img = document.createElement('img');
-    img.src = '/img/' + item.key;
+    img.src = '/r/' + item.key;
     img.alt = item.name;
     img.loading = 'lazy';
     img.addEventListener('click', () => openLightbox(img.src));

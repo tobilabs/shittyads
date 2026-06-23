@@ -34,8 +34,8 @@ const EXT_TYPES: Record<string, string> = {
 };
 
 // --- Serve images directly from R2 ---
-app.get("/img/*", async (c) => {
-  const key = c.req.path.replace(/^\/img\//, "");
+app.get("/r/*", async (c) => {
+  const key = c.req.path.replace(/^\/r\//, "");
   if (!key) return c.notFound();
 
   const obj = await c.env.BUCKET.get(key);
@@ -45,7 +45,8 @@ app.get("/img/*", async (c) => {
   const contentType =
     obj.httpMetadata?.contentType ?? EXT_TYPES[ext] ?? "application/octet-stream";
 
-  return new Response(obj.body, {
+  const buffer = await obj.arrayBuffer();
+  return new Response(buffer, {
     headers: {
       "content-type": contentType,
       "cache-control": "public, max-age=31536000, immutable",
