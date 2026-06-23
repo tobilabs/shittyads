@@ -1,0 +1,11 @@
+name = "shittyads"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "shittyads"
+
+# Set these secrets via: wrangler secret put UPLOAD_SECRET
+# Set this via: wrangler secret put R2_PUBLIC_URL
