@@ -127,7 +127,7 @@ export function renderHTML(publicUrl: string): string {
   <h1>💩 ShittyAds</h1>
   <p class="subtitle">Eine Sammlung von Scam- und Trash-Werbung aus dem Internet</p>
 
-  <div id="drop-zone">
+  <div id="drop-zone" style="display:none">
     <p>Screenshot hier hinziehen oder klicken</p>
     <small>JPG · PNG · GIF · WEBP · max. 20 MB · mehrere Dateien möglich</small>
     <input type="file" id="file-input" accept="image/*" multiple hidden>
@@ -136,7 +136,7 @@ export function renderHTML(publicUrl: string): string {
   <div class="secret-row">
     <button class="secret-toggle" id="secret-toggle">⚙ Upload-Secret ▼</button>
     <div class="secret-input-wrap" id="secret-wrap" style="display:none">
-      <input type="password" id="secret-input" placeholder="Secret (leer = kein Schutz)">
+      <input type="password" id="secret-input" placeholder="Upload-Secret eingeben…">
     </div>
   </div>
 
@@ -164,8 +164,21 @@ let scrollRestored = false;
 const secretInput = document.getElementById('secret-input');
 const secretWrap = document.getElementById('secret-wrap');
 const secretToggle = document.getElementById('secret-toggle');
+const dropZoneEl = document.getElementById('drop-zone');
+
+function applySecret(val) {
+  if (val) {
+    localStorage.setItem(SECRET_KEY, val);
+    dropZoneEl.style.display = '';
+  } else {
+    localStorage.removeItem(SECRET_KEY);
+    dropZoneEl.style.display = 'none';
+  }
+}
+
 secretInput.value = localStorage.getItem(SECRET_KEY) || '';
-secretInput.addEventListener('input', () => localStorage.setItem(SECRET_KEY, secretInput.value));
+applySecret(secretInput.value);
+secretInput.addEventListener('input', () => applySecret(secretInput.value));
 secretToggle.addEventListener('click', () => {
   const open = secretWrap.style.display === 'none';
   secretWrap.style.display = open ? 'flex' : 'none';
