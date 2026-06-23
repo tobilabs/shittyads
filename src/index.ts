@@ -26,8 +26,10 @@ app.get("/", (c) => {
 });
 
 // --- Serve images directly from R2 ---
-app.get("/img/:key{.+}", async (c) => {
-  const key = c.req.param("key");
+app.get("/img/*", async (c) => {
+  const key = c.req.path.slice("/img/".length);
+  if (!key) return c.notFound();
+
   const obj = await c.env.BUCKET.get(key);
   if (!obj) return c.notFound();
 

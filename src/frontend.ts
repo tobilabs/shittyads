@@ -301,7 +301,15 @@ async function loadMore() {
   try {
     const url = nextCursor ? '/api/ads?cursor=' + encodeURIComponent(nextCursor) : '/api/ads';
     const res = await fetch(url);
+    if (!res.ok) {
+      setStatus('Fehler beim Laden (' + res.status + ')', false);
+      return;
+    }
     const data = await res.json();
+    if (!Array.isArray(data.items)) {
+      setStatus('Unerwartete Antwort vom Server', false);
+      return;
+    }
     appendAds(data.items);
     nextCursor = data.nextCursor || null;
     hasMore = !!nextCursor;
@@ -318,6 +326,8 @@ async function loadMore() {
     } else {
       setStatus('', false);
     }
+  } catch (err) {
+    setStatus('Fehler: ' + err.message, false);
   } finally {
     loading = false;
   }
