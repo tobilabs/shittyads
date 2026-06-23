@@ -25,34 +25,31 @@ app.get("/", (c) => {
   return c.html(renderHTML());
 });
 
+const EXT_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
+
 // --- Serve images directly from R2 ---
 app.get("/img/*", async (c) => {
-  const key = c.req.path.slice("/img/".length);
+  const key = c.req.path.replace(/^\/img\//, "");
   if (!key) return c.notFound();
 
   const obj = await c.env.BUCKET.get(key);
   if (!obj) return c.notFound();
 
-  const headers = new Headers();
-  obj.writeHttpMetadata(headers);
-  headers.set("cache-control", "public, max-age=31536000, immutable");
+  const ext = key.match(/\.[^.]+$/)?.[0]?.toLowerCase() ?? "";
+  const contentType =
+    obj.httpMetadata?.contentType ?? EXT_TYPES[ext] ?? "application/octet-stream";
 
-  return new Response(obj.body, { headers });
-});
-
-// --- Debug (temporary) ---
-app.get("/api/debug", async (c) => {
-  const listed = await c.env.BUCKET.list({ limit: 5 });
-  return c.json({
-    count: listed.objects.length,
-    truncated: listed.truncated,
-    objects: listed.objects.map(o => ({
-      key: o.key,
-      size: o.size,
-      uploaded: o.uploaded,
-      contentType: o.httpMetadata?.contentType,
-      meta: o.customMetadata,
-    })),
+  return new Response(obj.body, {
+    headers: {
+      "content-type": contentType,
+      "cache-control": "public, max-age=31536000, immutable",
+    },
   });
 });
 
