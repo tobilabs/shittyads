@@ -137,6 +137,44 @@ export function renderHTML(): string {
       cursor: pointer; line-height: 1;
     }
     #lightbox-close:hover { color: #aaa; }
+
+    /* Onboarding overlay */
+    #onboarding {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.85);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    #onboarding.open { display: flex; }
+    #onboarding-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 16px;
+      max-width: 480px;
+      width: 100%;
+      padding: 2rem;
+    }
+    #onboarding-box h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: .75rem; }
+    #onboarding-box p { color: #aaa; font-size: .9rem; line-height: 1.6; margin-bottom: .75rem; }
+    #onboarding-box p:last-of-type { margin-bottom: 1.5rem; }
+    #onboarding-close {
+      display: block;
+      width: 100%;
+      background: #f97316;
+      color: #000;
+      font-weight: 700;
+      font-size: .95rem;
+      border: none;
+      border-radius: 8px;
+      padding: .7rem 1rem;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    #onboarding-close:hover { background: #ea6a00; }
   </style>
 </head>
 <body>
@@ -162,6 +200,15 @@ export function renderHTML(): string {
   <div id="status"></div>
 </main>
 
+<div id="onboarding">
+  <div id="onboarding-box">
+    <h2>💩 Willkommen bei ShittyAds</h2>
+    <p>Diese Seite sammelt Screenshots von schlechter, irreführender oder scammy Internet-Werbung — zur Dokumentation und zum Schmunzeln. Es werden hier keinerlei echte Werbeanzeigen ausgespielt.</p>
+    <p>Dein <strong>Adblocker erkennt die Bilder fälschlicherweise als Werbung</strong> und blockiert sie. Bitte deaktiviere ihn für diese Seite, damit die Screenshots sichtbar sind.</p>
+    <button id="onboarding-close">Verstanden — Adblocker deaktivieren & neu laden</button>
+  </div>
+</div>
+
 <div id="paste-toast">Bild eingefügt, lädt hoch…</div>
 
 <div id="lightbox">
@@ -172,6 +219,18 @@ export function renderHTML(): string {
 <script>
 const SCROLL_KEY = 'shittyads_scroll';
 const SECRET_KEY = 'shittyads_secret';
+const ONBOARDING_KEY = 'shittyads_welcomed';
+
+// --- Onboarding popup (shown once) ---
+if (!localStorage.getItem(ONBOARDING_KEY)) {
+  const overlay = document.getElementById('onboarding');
+  overlay.classList.add('open');
+  document.getElementById('onboarding-close').addEventListener('click', () => {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    overlay.classList.remove('open');
+    location.reload();
+  });
+}
 
 let nextCursor = null;
 let loading = false;
