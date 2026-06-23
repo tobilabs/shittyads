@@ -271,7 +271,6 @@ export function renderHTML(): string {
 </div>
 
 <script>
-const SCROLL_KEY = 'shittyads_scroll';
 const SECRET_KEY = 'shittyads_secret';
 const ONBOARDING_KEY = 'shittyads_welcomed';
 const LAST_SEEN_KEY = 'shittyads_last_seen';
@@ -293,7 +292,6 @@ if (!localStorage.getItem(ONBOARDING_KEY)) {
 let nextCursor = null;
 let loading = false;
 let hasMore = true;
-let scrollRestored = false;
 
 // --- Secret ---
 const secretInput = document.getElementById('secret-input');
@@ -389,7 +387,6 @@ async function upload(files) {
     document.getElementById('gallery').innerHTML = '';
     nextCursor = null;
     hasMore = true;
-    scrollRestored = true;
     await loadMore();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } finally {
@@ -461,11 +458,7 @@ async function loadMore() {
     updateLastSeen(data.items);
     nextCursor = data.nextCursor || null;
     hasMore = !!nextCursor;
-    if (!scrollRestored) {
-      scrollRestored = true;
-      const saved = localStorage.getItem(SCROLL_KEY);
-      if (saved) requestAnimationFrame(() => window.scrollTo({ top: +saved, behavior: 'instant' }));
-    }
+
     if (!hasMore) {
       const total = document.getElementById('gallery').children.length;
       setStatus(total > 0 ? 'Das war alles. Mehr Schrott bitte hochladen. 🗑️' : '', false);
@@ -484,15 +477,6 @@ function setStatus(msg, animate) {
   el.textContent = msg;
   el.style.animation = animate ? 'pulse 1s infinite' : 'none';
 }
-
-// Scroll save
-let ticking = false;
-window.addEventListener('scroll', () => {
-  if (!ticking) {
-    requestAnimationFrame(() => { localStorage.setItem(SCROLL_KEY, String(window.scrollY)); ticking = false; });
-    ticking = true;
-  }
-}, { passive: true });
 
 // Infinite scroll
 const observer = new IntersectionObserver(entries => {
