@@ -40,6 +40,22 @@ app.get("/img/*", async (c) => {
   return new Response(obj.body, { headers });
 });
 
+// --- Debug (temporary) ---
+app.get("/api/debug", async (c) => {
+  const listed = await c.env.BUCKET.list({ limit: 5 });
+  return c.json({
+    count: listed.objects.length,
+    truncated: listed.truncated,
+    objects: listed.objects.map(o => ({
+      key: o.key,
+      size: o.size,
+      uploaded: o.uploaded,
+      contentType: o.httpMetadata?.contentType,
+      meta: o.customMetadata,
+    })),
+  });
+});
+
 // --- List ads ---
 app.get("/api/ads", async (c) => {
   const cursor = c.req.query("cursor") ?? undefined;
