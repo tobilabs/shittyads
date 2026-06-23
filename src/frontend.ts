@@ -1,4 +1,4 @@
-export function renderHTML(publicUrl: string): string {
+export function renderHTML(): string {
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -42,6 +42,23 @@ export function renderHTML(publicUrl: string): string {
     #drop-zone small { color: #555; font-size: .8rem; margin-top: .3rem; display: block; }
     #drop-zone.uploading p { color: #f97316; animation: pulse 1s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    /* Paste toast */
+    #paste-toast {
+      display: none;
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f97316;
+      color: #000;
+      font-size: .85rem;
+      font-weight: 600;
+      padding: .5rem 1.25rem;
+      border-radius: 999px;
+      z-index: 200;
+      pointer-events: none;
+    }
 
     .secret-row {
       text-align: right;
@@ -128,7 +145,7 @@ export function renderHTML(publicUrl: string): string {
   <p class="subtitle">Eine Sammlung von Scam- und Trash-Werbung aus dem Internet</p>
 
   <div id="drop-zone" style="display:none">
-    <p>Screenshot hier hinziehen oder klicken</p>
+    <p>Screenshot hier hinziehen, klicken oder einfügen (Strg+V)</p>
     <small>JPG · PNG · GIF · WEBP · max. 20 MB · mehrere Dateien möglich</small>
     <input type="file" id="file-input" accept="image/*" multiple hidden>
   </div>
@@ -145,6 +162,8 @@ export function renderHTML(publicUrl: string): string {
   <div id="status"></div>
 </main>
 
+<div id="paste-toast">Bild eingefügt, lädt hoch…</div>
+
 <div id="lightbox">
   <button id="lightbox-close">✕</button>
   <img id="lightbox-img" src="" alt="Vollbild">
@@ -153,7 +172,6 @@ export function renderHTML(publicUrl: string): string {
 <script>
 const SCROLL_KEY = 'shittyads_scroll';
 const SECRET_KEY = 'shittyads_secret';
-const PUBLIC_URL = ${JSON.stringify(publicUrl)};
 
 let nextCursor = null;
 let loading = false;
@@ -164,15 +182,15 @@ let scrollRestored = false;
 const secretInput = document.getElementById('secret-input');
 const secretWrap = document.getElementById('secret-wrap');
 const secretToggle = document.getElementById('secret-toggle');
-const dropZoneEl = document.getElementById('drop-zone');
+const dropZone = document.getElementById('drop-zone');
 
 function applySecret(val) {
   if (val) {
     localStorage.setItem(SECRET_KEY, val);
-    dropZoneEl.style.display = '';
+    dropZone.style.display = '';
   } else {
     localStorage.removeItem(SECRET_KEY);
-    dropZoneEl.style.display = 'none';
+    dropZone.style.display = 'none';
   }
 }
 
@@ -186,7 +204,6 @@ secretToggle.addEventListener('click', () => {
 });
 
 // --- Upload ---
-const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 
 dropZone.addEventListener('click', () => fileInput.click());
@@ -199,9 +216,29 @@ dropZone.addEventListener('drop', e => {
 });
 fileInput.addEventListener('change', () => { if (fileInput.files.length) upload(fileInput.files); fileInput.value = ''; });
 
+// Paste support (Ctrl+V anywhere on the page)
+document.addEventListener('paste', e => {
+  if (!localStorage.getItem(SECRET_KEY)) return;
+  const files = Array.from(e.clipboardData.items)
+    .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+    .map(item => item.getAsFile())
+    .filter(Boolean);
+  if (files.length) {
+    showPasteToast();
+    upload(files);
+  }
+});
+
+function showPasteToast() {
+  const toast = document.getElementById('paste-toast');
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+
 async function upload(files) {
+  const label = dropZone.querySelector('p');
   dropZone.classList.add('uploading');
-  dropZone.querySelector('p').textContent = 'Lädt hoch…';
+  label.textContent = 'Lädt hoch…';
   const fd = new FormData();
   for (const f of files) fd.append('files', f);
   const headers = {};
@@ -214,7 +251,6 @@ async function upload(files) {
       alert('Upload fehlgeschlagen: ' + err.error);
       return;
     }
-    // Reset gallery and reload from top
     document.getElementById('gallery').innerHTML = '';
     nextCursor = null;
     hasMore = true;
@@ -223,7 +259,7 @@ async function upload(files) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } finally {
     dropZone.classList.remove('uploading');
-    dropZone.querySelector('p').textContent = 'Screenshot hier hinziehen oder klicken';
+    label.textContent = 'Screenshot hier hinziehen, klicken oder einfügen (Strg+V)';
   }
 }
 
@@ -241,7 +277,7 @@ function appendAds(items) {
     const article = document.createElement('article');
     article.className = 'ad-item';
     const img = document.createElement('img');
-    img.src = PUBLIC_URL + '/' + item.key;
+    img.src = '/img/' + item.key;
     img.alt = item.name;
     img.loading = 'lazy';
     img.addEventListener('click', () => openLightbox(img.src));
@@ -275,7 +311,13 @@ async function loadMore() {
       const saved = localStorage.getItem(SCROLL_KEY);
       if (saved) requestAnimationFrame(() => window.scrollTo({ top: +saved, behavior: 'instant' }));
     }
-    setStatus(hasMore ? '' : (data.items.length || nextCursor === null ? 'Das war alles. Mehr Schrott bitte hochladen. 🗑️' : ''), false);
+
+    if (!hasMore) {
+      const totalInGallery = document.getElementById('gallery').children.length;
+      setStatus(totalInGallery > 0 ? 'Das war alles. Mehr Schrott bitte hochladen. 🗑️' : '', false);
+    } else {
+      setStatus('', false);
+    }
   } finally {
     loading = false;
   }

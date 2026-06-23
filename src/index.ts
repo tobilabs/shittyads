@@ -4,7 +4,6 @@ import { renderHTML } from "./frontend";
 type Bindings = {
   BUCKET: R2Bucket;
   UPLOAD_SECRET: string;
-  R2_PUBLIC_URL: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -23,7 +22,20 @@ function makeKey(filename: string): string {
 
 // --- Frontend ---
 app.get("/", (c) => {
-  return c.html(renderHTML(c.env.R2_PUBLIC_URL));
+  return c.html(renderHTML());
+});
+
+// --- Serve images directly from R2 ---
+app.get("/img/:key{.+}", async (c) => {
+  const key = c.req.param("key");
+  const obj = await c.env.BUCKET.get(key);
+  if (!obj) return c.notFound();
+
+  const headers = new Headers();
+  obj.writeHttpMetadata(headers);
+  headers.set("cache-control", "public, max-age=31536000, immutable");
+
+  return new Response(obj.body, { headers });
 });
 
 // --- List ads ---
@@ -39,7 +51,6 @@ app.get("/api/ads", async (c) => {
     key: obj.key,
     name: (obj.customMetadata?.originalName as string | undefined) ?? obj.key,
     uploaded: obj.uploaded.toISOString(),
-    size: obj.size,
   }));
 
   return c.json({
@@ -69,10 +80,10 @@ app.post("/upload", async (c) => {
 
   for (const file of files) {
     if (!ALLOWED_TYPES.has(file.type)) {
-      return c.json({ error: `Invalid type: ${file.type}` }, 400);
+      return c.json({ error: `Ungültiger Dateityp: ${file.type}` }, 400);
     }
     if (file.size > MAX_SIZE) {
-      return c.json({ error: `File too large: ${file.name}` }, 400);
+      return c.json({ error: `Datei zu groß: ${file.name}` }, 400);
     }
 
     const key = makeKey(file.name);
