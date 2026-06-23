@@ -100,6 +100,22 @@ export function renderHTML(): string {
 
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 
+    /* Caught-up divider */
+    .caught-up {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      color: #444;
+      font-size: .75rem;
+      user-select: none;
+    }
+    .caught-up::before, .caught-up::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #2a2a2a;
+    }
+
     /* Gallery */
     main {
       max-width: 760px;
@@ -258,6 +274,12 @@ export function renderHTML(): string {
 const SCROLL_KEY = 'shittyads_scroll';
 const SECRET_KEY = 'shittyads_secret';
 const ONBOARDING_KEY = 'shittyads_welcomed';
+const LAST_SEEN_KEY = 'shittyads_last_seen';
+
+// Read once at page start — stays fixed for this session
+const sessionLastSeen = localStorage.getItem(LAST_SEEN_KEY);
+let dividerInserted = false;
+let lastSeenUpdated = false;
 
 // --- Onboarding (once) ---
 if (!localStorage.getItem(ONBOARDING_KEY)) {
@@ -387,6 +409,14 @@ function formatDate(iso) {
 function appendAds(items) {
   const gallery = document.getElementById('gallery');
   for (const item of items) {
+    // Insert "caught up" divider before the first already-seen item
+    if (sessionLastSeen && !dividerInserted && item.key >= sessionLastSeen) {
+      dividerInserted = true;
+      const div = document.createElement('div');
+      div.className = 'caught-up';
+      div.textContent = 'Bereits gesehen';
+      gallery.appendChild(div);
+    }
     const article = document.createElement('article');
     article.className = 'ad-item';
     const img = document.createElement('img');
@@ -400,6 +430,16 @@ function appendAds(items) {
     article.appendChild(img);
     article.appendChild(meta);
     gallery.appendChild(article);
+  }
+}
+
+function updateLastSeen(items) {
+  if (lastSeenUpdated || !items.length) return;
+  lastSeenUpdated = true;
+  const newest = items[0].key; // smallest key = newest (inverted timestamp)
+  const stored = localStorage.getItem(LAST_SEEN_KEY);
+  if (!stored || newest < stored) {
+    localStorage.setItem(LAST_SEEN_KEY, newest);
   }
 }
 
@@ -418,6 +458,7 @@ async function loadMore() {
     const data = await res.json();
     if (!Array.isArray(data.items)) { setStatus('Unerwartete Antwort vom Server', false); return; }
     appendAds(data.items);
+    updateLastSeen(data.items);
     nextCursor = data.nextCursor || null;
     hasMore = !!nextCursor;
     if (!scrollRestored) {
